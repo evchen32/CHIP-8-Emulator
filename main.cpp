@@ -11,13 +11,13 @@ using namespace std;
 
 class Chip8 {
     private: 
-        int pc, idx; // idx reg will be set by games
+        int pc;
+        uint16_t idx; // idx reg will be set by games
         vector<uint8_t> ram;
         stack<int> stk;
         uint8_t delayReg, soundReg;
 
     public:
-
         Chip8() {
             ram = vector<uint8_t>(4096); // 4kB or 4096 bytes large
             pc = 200; // CHIP-8 program starts here
@@ -40,29 +40,31 @@ class Chip8 {
             
         }
 
-        /*
+
+        /**
          * Get the current delay reg value
          */
         uint8_t getDelayReg() {
             return delayReg;
         }
 
-        /*
+        /**
          * Decrement the delay reg
          */
         void minusDelay() {
             delayReg--;
         }
 
-        /*
+        /**
          * Get the current sound reg value
          */
         uint8_t getSoundReg() {
             return soundReg;
         }
 
-        /*
+        /**
          * Decrement the sound reg
+         * TODO: Add sound
          */
         void minusSound() {
             soundReg--;
@@ -112,6 +114,7 @@ int main(int argc, char* argv[]) {
 
     fpsTimer.start(); // start fps timer
 
+    // Each loop iteration is a cycle - 1 frame update
     while(isRunning) {
         capTimer.start();
 
@@ -173,6 +176,10 @@ int main(int argc, char* argv[]) {
                 
             }
         }
+
+        // CHIP-8 F-D-X - On avg. 11.67 instructions are executed per cycle (processor run @ 700 inst./sec.)
+
+
 
         // Render frame
         SDL_UpdateWindowSurface(window);

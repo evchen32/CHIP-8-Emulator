@@ -1,3 +1,7 @@
+Notes:
+- Must use x86_64 mingw
+- CHIP-8 is big-endian
+
 Dependencies:
 - SDL
 
