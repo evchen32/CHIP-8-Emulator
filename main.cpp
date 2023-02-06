@@ -40,6 +40,19 @@ class Chip8 {
             
         }
 
+        /**
+         * Fetch instruction + move PC 
+         */
+        uint16_t fetch() {
+            uint16_t inst = 0;
+            inst |= ram[pc];
+            inst = inst << 8;
+            inst |= ram[pc + 1];
+
+            pc += 2;
+            return inst;
+        }
+
 
         /**
          * Get the current delay reg value
