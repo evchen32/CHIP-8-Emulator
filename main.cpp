@@ -5,6 +5,7 @@
 #include <bitset>
 #include <SDL2/SDL.h>
 #include <stack>
+#include <string>
 #include "Timer.h"
 
 using namespace std;

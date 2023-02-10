@@ -6,7 +6,7 @@
 class Timer {
     private:
         uint32_t startTicks;
-
+    
     public:
         Timer();
 
