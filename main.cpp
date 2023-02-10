@@ -1,102 +1,13 @@
-#include <stdlib.h>
 #include <iostream>
-#include <vector>
-#include <fstream>
-#include <bitset>
 #include <SDL2/SDL.h>
-#include <stack>
-#include <string>
+#include "Chip8.h"
 #include "Timer.h"
 
 using namespace std;
 
-class Chip8 {
-    private: 
-        int pc;
-        uint16_t idx; // idx reg will be set by games
-        vector<uint8_t> ram;
-        stack<int> stk;
-        uint8_t delayReg, soundReg;
-
-    public:
-        Chip8() {
-            ram = vector<uint8_t>(4096); // 4kB or 4096 bytes large
-            pc = 200; // CHIP-8 program starts here
-            delayReg = 0;
-            soundReg = 0;
-
-            // load font data - popular convention to populate from 0x50 - 0x9F (big endian)
-            string line;
-            fstream file;
-            auto it = ram.begin() + 80;
-
-            file.open("font.txt");
-            
-            while(getline(file, line)) {
-                *it = std::stoi(line, nullptr, 0); // converts to hex 
-                it++;
-            }
-
-            file.close();
-            
-        }
-
-        /**
-         * Fetch instruction + move PC 
-         */
-        uint16_t fetch() {
-            uint16_t inst = 0;
-            inst |= ram[pc];
-            inst = inst << 8;
-            inst |= ram[pc + 1];
-
-            pc += 2;
-            return inst;
-        }
-
-
-        /**
-         * Get the current delay reg value
-         */
-        uint8_t getDelayReg() {
-            return delayReg;
-        }
-
-        /**
-         * Decrement the delay reg
-         */
-        void minusDelay() {
-            delayReg--;
-        }
-
-        /**
-         * Get the current sound reg value
-         */
-        uint8_t getSoundReg() {
-            return soundReg;
-        }
-
-        /**
-         * Decrement the sound reg
-         * TODO: Add sound
-         */
-        void minusSound() {
-            soundReg--;
-        }
-
-        /*
-         * Function for keypresses
-         */
-
-};
-
 int main(int argc, char* argv[]) {
     Chip8 inst = Chip8();
-    /*for(int i = 80; i < 160; i++) {
-        bitset<8> x(inst.ram[i]);
-        cout << std::hex << x << endl;
-    }*/
-
+    
     // Initialize display
     SDL_Window * window = nullptr;
 
