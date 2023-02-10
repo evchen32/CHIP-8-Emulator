@@ -103,11 +103,7 @@ int main(int argc, char* argv[]) {
         }
 
         // CHIP-8 F-D-X - On avg. 11.67 instructions are executed per cycle (processor run @ 700 inst./sec.)
-
-
-
-        // Render frame
-        SDL_UpdateWindowSurface(window);
+        
 
         // Update delay and sound regs
         if(inst.getDelayReg() > 0) {

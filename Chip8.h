@@ -8,10 +8,19 @@
 class Chip8 {
     private: 
         int pc; // CHIP-8 program starts @ 200
-        uint16_t idx; // idx reg will be set by games
+        uint16_t idxReg; // idx reg will be set by games
         std::vector<uint8_t> ram; // 4kB or 4096 bytes large
         std::stack<int> stk;
-        uint8_t delayReg, soundReg;
+        uint8_t delayReg, soundReg, V0, V1, V2, V3, V4, V5, V6,
+                V7, V8, V9, VA, VB, VC, VD, VE, VF;
+
+        SDL_Window * window;
+        SDL_Renderer * renderer;
+        SDL_Surface * surface;
+        const int SCREEN_WIDTH = 64;
+        const int SCREEN_HEIGHT = 32;
+        const int SCREEN_FPS = 60;
+        const int SCREEN_TICKS_PER_FRAME = 1000 / SCREEN_FPS;
 
     public:
         Chip8();
@@ -30,6 +39,11 @@ class Chip8 {
          * Decode and execute instruction  
          */
         void decodeExec(uint16_t inst);
+
+        /**
+         * Select a register 
+         */
+         uint8_t* mux(int reg);
 
 
         /**
