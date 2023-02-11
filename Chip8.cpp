@@ -35,9 +35,11 @@ Chip8::Chip8() : ram(4096), pc(0x200)
         SDL_Quit();
     }
 
-    // Initialize renderer and surface
+    // Initialize renderer, surface, and texture
     renderer = SDL_CreateRenderer(window, -1, 0);
     surface = SDL_CreateRGBSurface(0,SCREEN_WIDTH,SCREEN_HEIGHT,32,0xFF000000,0x00FF0000,0x0000FF00,0x000000FF); // (r,g,b,a) depth
+    SDL_FillRect(surface, NULL, SDL_MapRGBA(surface->format, 0,0,0,0xFF)); // Make the surface pixels all black
+    texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_STREAMING, SCREEN_WIDTH, SCREEN_HEIGHT);
 }
 
 /**
@@ -131,46 +133,48 @@ void Chip8::decodeExec(uint16_t inst)
        
         // The starting position will wrap the sprite over the edge of the screen
         // Actual drawing is not wrapped!
-        uint8_t xCoord = *mux(x) % SCREEN_WIDTH;
-        uint8_t yCoord = *mux(y) % SCREEN_HEIGHT;
-        VF = 0;
+        uint8_t startX = *mux(x) % SCREEN_WIDTH; // starting x coordinate of sprite
+        uint8_t startY = *mux(y) % SCREEN_HEIGHT; // starting y coordinate of sprite
         
-        uint8_t pixelRow; // Each bit represents a pixel on/off
-        uint8_t curPixel; // current pixel
-        uint32_t* p = (uint32_t*) surface->pixels; // array of pixels on the surface
+        VF = 0; // reset VF register
+        
+        uint8_t spriteRow; // A row of pixels from sprite - each bit represents a pixel on/off
+        uint8_t spritePixel; // current sprite pixel
         uint32_t * screenPixel = nullptr; // screen pixel
 
+        
         SDL_LockSurface(surface); // Lock before pixel manipulation
+        uint32_t* surfacePixels = (uint32_t*) surface->pixels; // array of pixels on the surface
+        uint8_t xCoord, yCoord; // Surface pixel x and y coordinates
 
         // Read n bytes from memory
         for(uint16_t offset = 0; offset < n; offset++) {
-            pixelRow = ram[idxReg + offset];
+            spriteRow = ram[idxReg + offset];
+            yCoord = startY + offset;
             
             // Look at each pixel status in the row
             for(int j = 0; j < 8; j++) {
+                xCoord = startX + j;
 
-                 curPixel = (pixelRow & 0x80) >> 7;
+                spritePixel = ((spriteRow << j) & 0x80) >> 7;
 
-                 // Find current pixel based on position
-                 screenPixel = p + yCoord * surface->pitch + xCoord * surface->format->BytesPerPixel;
+                // Find current screen pixel based on position
+                screenPixel = surfacePixels + yCoord * (surface->pitch / 4) + xCoord;
  
                 // Begin comparison of screen pixel and current pixel
-                if(curPixel) {
-                    uint32_t temp = *screenPixel;
-                    uint32_t temp2 = surface->format->Rmask;
-                    uint32_t temp3 = *screenPixel & surface->format->Rmask;
-                    if(*screenPixel & surface->format->Rmask) {
+                if(spritePixel) {
+                    uint8_t r, g, b, a;
+                    SDL_GetRGBA(*screenPixel, surface->format, &r ,&g, &b, &a);
+
+                    if(r == 0xFF) {
                         // Detected red, the pixel has color!
-                       *screenPixel = 0;
-                       *screenPixel |= surface->format->Amask;
+                       *screenPixel = SDL_MapRGBA(surface->format, 0, 0, 0, 0xFF);
                         VF = 1; 
                     } else {
-                        *screenPixel = 0xFFFFFFFF;
+                        *screenPixel = SDL_MapRGBA(surface->format, 0xFF, 0xFF, 0xFF, 0xFF);
                     }
                 }
 
-                xCoord++;
-                pixelRow = pixelRow << 1;
                 if(xCoord == SCREEN_WIDTH) {
                     break;
                 }
@@ -184,9 +188,10 @@ void Chip8::decodeExec(uint16_t inst)
 
         SDL_UnlockSurface(surface); // Unlock after pixel manipulation
 
-        SDL_Texture * texture = SDL_CreateTextureFromSurface(renderer, surface);
-
+        SDL_UpdateTexture(texture, NULL, surfacePixels, surface->pitch); // update texture with new pixel data
+        
         // Clear renderer
+        //SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
         SDL_RenderClear(renderer);
 
         // Draw texture
@@ -294,6 +299,9 @@ void Chip8::minusSound()
 
 Chip8::~Chip8(){
     // Clean-up
+    SDL_DestroyRenderer(renderer);
+    SDL_FreeSurface(surface);
+    SDL_DestroyTexture(texture);
     SDL_DestroyWindow(window);
     SDL_Quit();
 }

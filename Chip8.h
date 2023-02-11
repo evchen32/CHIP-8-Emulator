@@ -17,6 +17,8 @@ class Chip8 {
         SDL_Window * window;
         SDL_Renderer * renderer;
         SDL_Surface * surface;
+        SDL_Texture * texture;
+        
         const int SCREEN_WIDTH = 64;
         const int SCREEN_HEIGHT = 32;
         const int SCREEN_FPS = 60;
