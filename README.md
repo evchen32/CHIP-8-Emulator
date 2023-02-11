@@ -22,3 +22,5 @@ References used:
 - https://stackoverflow.com/questions/21007329/what-is-an-sdl-renderer
 - https://www.willusher.io/sdl2%20tutorials/2013/08/17/lesson-1-hello-world
 - https://stackoverflow.com/questions/53033971/how-to-get-the-color-of-a-specific-pixel-from-sdl-surface
+- https://www.willusher.io/sdl2%20tutorials/2013/08/17/lesson-1-hello-world
+

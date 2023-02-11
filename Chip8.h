@@ -7,7 +7,7 @@
 
 class Chip8 {
     private: 
-        int pc; // CHIP-8 program starts @ 200
+        uint16_t pc; // CHIP-8 program starts @ 0x200
         uint16_t idxReg; // idx reg will be set by games
         std::vector<uint8_t> ram; // 4kB or 4096 bytes large
         std::stack<int> stk;
@@ -29,6 +29,11 @@ class Chip8 {
          * Read from memory
          */
         uint8_t readRAM(int idx);
+
+        /**
+         * Write to memory
+         */
+        void writeRAM(int idx, uint8_t val);
 
         /**
          * Fetch instruction + move PC 
@@ -66,6 +71,9 @@ class Chip8 {
          * TODO: Add sound
          */
         void minusSound();
+
+
+        ~Chip8();
 
         /*
          * Function for keypresses
