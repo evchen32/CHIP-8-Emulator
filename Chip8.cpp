@@ -209,13 +209,13 @@ void Chip8::decodeExec(uint16_t inst)
                 break;
             // SHR Vx {,Vy} 
             case 6:
-                *Vx = *Vx >> 1;
-                if(*Vx & 1 == 1) {
+                if((*Vx & 1) == 1) {
                     VF = 1;
                 } else {
-                    0;
+                    VF = 0;
                 }
 
+                *Vx = *Vx >> 1;
                 break;
             
             // SUBN Vx, Vy
@@ -230,13 +230,13 @@ void Chip8::decodeExec(uint16_t inst)
                 break;
             // SHL Vx {,Vy}
             case 0xE:
-                *Vx = *Vx << 1;
-
-                if(*Vx & 0x80 == 0x80) {
+                if((*Vx & 0x80) == 0x80) {
                     VF = 1;
                 } else {
                     VF = 0;
                 }
+
+                *Vx = *Vx << 1;
                 break;
         }
         
