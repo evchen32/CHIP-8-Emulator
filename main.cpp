@@ -9,7 +9,7 @@ using namespace std;
 int main(int argc, char* argv[]) {
     Chip8 inst = Chip8();
 
-    ifstream file("BC_test.ch8", ifstream::binary);
+    ifstream file("Breakout.ch8", ifstream::binary);
     uint16_t idx = 0x200;
 
     char byte;
@@ -44,10 +44,12 @@ int main(int argc, char* argv[]) {
     while(isRunning) {
         capTimer.start();
 
+        // polling for events also updates the keyboard state with pumpEvents()
         while(SDL_PollEvent(&ev) != 0) {
-            
             if(ev.type == SDL_QUIT) {
                 isRunning = false;
+            } else if(ev.type == SDL_KEYDOWN) {
+                inst.keyPress(ev.key.keysym.scancode);
             }
         }
 

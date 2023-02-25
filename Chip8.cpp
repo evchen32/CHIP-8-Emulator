@@ -41,6 +41,9 @@ Chip8::Chip8() : ram(4096), pc(0x200), pause(false)
     surface = SDL_CreateRGBSurface(0,SCREEN_WIDTH,SCREEN_HEIGHT,32,0xFF000000,0x00FF0000,0x0000FF00,0x000000FF); // (r,g,b,a) depth
     SDL_FillRect(surface, NULL, SDL_MapRGBA(surface->format, 0,0,0,0xFF)); // Make the surface pixels all black
     texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_STREAMING, SCREEN_WIDTH, SCREEN_HEIGHT);
+
+    numKeys = 0;
+    keyStates = SDL_GetKeyboardState(&numKeys);
 }
 
 /**
@@ -350,9 +353,8 @@ void Chip8::decodeExec(uint16_t inst)
         {
             Vx = muxReg(x);
             int scanCode = getScanCode(*Vx);
-            const uint8_t * keyStates = SDL_GetKeyboardState(NULL);
 
-            // SKP Vx
+            // SKP Vx - using keyStates is fine since, we are looking for certain key press. Possible to use events also...
             if(kk == 0x9E) {
                 if(keyStates[scanCode]) {
                     pc +=2;
@@ -371,17 +373,10 @@ void Chip8::decodeExec(uint16_t inst)
             if(kk == 0x07) {
                 *Vx = delayReg; // LD Vx, DT
             } else if(kk == 0x0A) {
+                // We don't know the key that will be pressed so, must rely on events to pass it in
                 pc -= 2; // LD Vx, K - wait for keypress, store value of key in Vx
                 pause = true;
-
-                while(SDL_PollEvent(&ev)) {
-                    if(ev.type == SDL_KEYDOWN) {
-                        pause = false;
-                        pc += 2;
-                        *Vx = getKeyValue(ev.key.keysym.scancode);
-                        break;
-                    }
-                }
+                
             } else if(kk == 0x15) {
                 delayReg = *Vx; // LD DT, Vx
             } else if(kk == 0x18) {
@@ -421,6 +416,22 @@ void Chip8::decodeExec(uint16_t inst)
             break;
     }
 }
+
+/**
+ * Pass in key presses to CHIP-8
+ * 
+ */
+ void Chip8::keyPress(int scanCode) {
+
+    // Deals with 0xFx0A instruction
+    if(pause) {
+        uint16_t inst = fetch();
+        uint16_t x = (inst & 0x0F00) >> 8;
+        uint8_t * Vx = muxReg(x);
+        pause = false;
+        *Vx = getKeyValue(scanCode);
+    }
+ }
 
 /**
  * Get key hex value 

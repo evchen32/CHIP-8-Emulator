@@ -9,6 +9,7 @@ References used:
 - https://tobiasvl.github.io/blog/write-a-chip-8-emulator/
 - http://devernay.free.fr/hacks/chip8/C8TECH10.HTM
 - https://github.com/corax89/chip8-test-rom
+- https://github.com/loktar00/chip8/tree/master/roms
 - https://courses.cs.washington.edu/courses/cse326/00sp/unix/g++.html
 - https://wiki.libsdl.org/SDL2/Installation
 - https://www.learncpp.com/cpp-tutorial/header-files/

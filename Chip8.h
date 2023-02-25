@@ -19,7 +19,8 @@ class Chip8 {
         SDL_Renderer * renderer;
         SDL_Surface * surface;
         SDL_Texture * texture;
-        SDL_Event ev; // for keyboard events
+        const uint8_t * keyStates; // for keyboard events
+        int numKeys; // number of keys
         
         const int SCREEN_WIDTH = 64;
         const int SCREEN_HEIGHT = 32;
@@ -91,6 +92,12 @@ class Chip8 {
          * 
          */
         bool isPaused();
+
+        /**
+         * Passes in key presses to CHIP-8
+         * 
+         */
+        void keyPress(int scanCode);
 
 
         ~Chip8();
