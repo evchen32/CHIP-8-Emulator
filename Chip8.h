@@ -13,11 +13,13 @@ class Chip8 {
         std::stack<int> stk;
         uint8_t delayReg, soundReg, V0, V1, V2, V3, V4, V5, V6,
                 V7, V8, V9, VA, VB, VC, VD, VE, VF;
+        bool pause; // pauses execution
 
         SDL_Window * window;
         SDL_Renderer * renderer;
         SDL_Surface * surface;
         SDL_Texture * texture;
+        SDL_Event ev; // for keyboard events
         
         const int SCREEN_WIDTH = 64;
         const int SCREEN_HEIGHT = 32;
@@ -50,8 +52,18 @@ class Chip8 {
         /**
          * Select a register 
          */
-         uint8_t* mux(int reg);
+         uint8_t* muxReg(int reg);
 
+         /**
+          * Get key hex value 
+          * 
+          */
+         uint8_t getKeyValue(int scanCode);
+        
+        /**
+         * Get key scan code 
+         */
+         int getScanCode(uint8_t key);
 
         /**
          * Get the current delay reg value
@@ -73,6 +85,12 @@ class Chip8 {
          * TODO: Add sound
          */
         void minusSound();
+
+        /**
+         * Checks if execution is paused
+         * 
+         */
+        bool isPaused();
 
 
         ~Chip8();

@@ -2,10 +2,11 @@
 #include <string>
 #include <fstream>
 #include <iostream>
+#include <cstdlib>
 
 using namespace std;
 
-Chip8::Chip8() : ram(4096), pc(0x200)
+Chip8::Chip8() : ram(4096), pc(0x200), pause(false)
 {
     // load font data - popular convention to populate from 0x50 - 0x9F (big endian)
     string line;
@@ -89,20 +90,24 @@ void Chip8::decodeExec(uint16_t inst)
     uint16_t nnn = inst & 0x0FFF;                // second, third, and fourth nibbles (intermediate memory address)
 
     uint8_t * Vx = nullptr;
+    uint8_t * Vy = nullptr;
 
     // Decode and Execute
     switch (firstNibble)
     {
     case 0:
-        if (inst == 0x00E0)
+        // CLS - clear the display
+        if (nnn == 0x0E0)
         {
             SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255); // Select drawing color for renderer
             SDL_RenderClear(renderer);                      // CLS - clear screen
             SDL_RenderPresent(renderer);
         }
-        else
+        else if (nnn == 0x0EE)
         {
-            // RET
+            // RET - return from a subroutine
+            pc = stk.top();
+            stk.pop();
         }
         break;
 
@@ -111,16 +116,139 @@ void Chip8::decodeExec(uint16_t inst)
         pc = nnn;
         break;
 
+    // CALL addr - call subroutine at nnn
+    case 2:
+        stk.push(pc);
+        pc = nnn;
+        break;
+
+    // SE Vx, byte - skip next instruction if Vx = kk
+    case 3:
+        Vx = muxReg(x);
+        if(*Vx == kk) 
+        {
+            pc += 2;
+        }
+        break;
+    
+    // SNE Vx, byte
+    case 4:
+        Vx = muxReg(x);
+        if(*Vx != kk)
+        {
+            pc += 2;
+        }
+        break;
+
+    // SE Vx, Vy
+    case 5:
+        Vx = muxReg(x);
+        Vy = muxReg(y);
+        if(*Vx == *Vy) {
+            pc += 2;
+        }
+        break;
+
     // LD Vx, byte
     case 6:
-        Vx = mux(x);
+        Vx = muxReg(x);
         *Vx = kk;
         break;
 
     // ADD Vx, byte
     case 7:
-         Vx = mux(x);
+         Vx = muxReg(x);
         *Vx = *Vx + kk;
+        break;
+
+    case 8:
+        Vx = muxReg(x);
+        Vy = muxReg(y);
+
+        switch(n)
+        {   
+            // LD Vx, Vy
+            case 0:
+                *Vx = *Vy;
+                break;
+            // OR Vx, Vy
+            case 1:
+                *Vx = *Vx | *Vy;
+                break;
+            // AND Vx, Vy
+            case 2:
+                *Vx = *Vx & *Vy;
+                break;
+            // XOR Vx, Vy
+            case 3:
+                *Vx = *Vx ^ *Vy;
+                break;
+            // ADD Vx, Vy
+            case 4:
+            {
+                uint16_t xVal = *Vx;
+                uint16_t yVal = *Vy;
+                // Trigger flag based on overflow
+                if(xVal + yVal > 255) {
+                    VF = 1;
+                } else {
+                    VF = 0;
+                }
+
+                *Vx = *Vx + *Vy;
+                break;
+            }
+            // SUB Vx, Vy
+            case 5:
+                if(*Vx > *Vy) {
+                    VF = 1;
+                } else {
+                    VF = 0;
+                }
+                *Vx = *Vx - *Vy;
+                break;
+            // SHR Vx {,Vy} 
+            case 6:
+                *Vx = *Vx >> 1;
+                if(*Vx & 1 == 1) {
+                    VF = 1;
+                } else {
+                    0;
+                }
+
+                break;
+            
+            // SUBN Vx, Vy
+            case 7:
+                if(*Vy > *Vx) {
+                    VF = 1;
+                } else {
+                    VF = 0;
+                }
+ 
+                *Vx = *Vy - *Vx;
+                break;
+            // SHL Vx {,Vy}
+            case 0xE:
+                *Vx = *Vx << 1;
+
+                if(*Vx & 0x80 == 0x80) {
+                    VF = 1;
+                } else {
+                    VF = 0;
+                }
+                break;
+        }
+        
+        break;
+    
+    // SNE Vx, Vy
+    case 9:
+        Vx = muxReg(x);
+        Vy = muxReg(y);
+        if(*Vx != *Vy) {
+            pc += 4;
+        }
         break;
 
     // LD I, addr
@@ -128,13 +256,27 @@ void Chip8::decodeExec(uint16_t inst)
         idxReg = nnn;
         break;
 
+    // JP V0, addr
+    case 0xB:
+        pc = nnn + *muxReg(0);
+        break;
+
+    // RND Vx, byte
+    case 0xC:
+    {
+        Vx = muxReg(x);
+        uint8_t randNum = rand() % (kk + 1); // generate random num from 0 - kk
+        *Vx = *Vx & randNum;
+        break;
+    }
     // DRW Vx, Vy, nibble
     case 0xD:
+    {
        
         // The starting position will wrap the sprite over the edge of the screen
         // Actual drawing is not wrapped!
-        uint8_t startX = *mux(x) % SCREEN_WIDTH; // starting x coordinate of sprite
-        uint8_t startY = *mux(y) % SCREEN_HEIGHT; // starting y coordinate of sprite
+        uint8_t startX = *muxReg(x) % SCREEN_WIDTH; // starting x coordinate of sprite
+        uint8_t startY = *muxReg(y) % SCREEN_HEIGHT; // starting y coordinate of sprite
         
         VF = 0; // reset VF register
         
@@ -172,6 +314,7 @@ void Chip8::decodeExec(uint16_t inst)
                         VF = 1; 
                     } else {
                         *screenPixel = SDL_MapRGBA(surface->format, 0xFF, 0xFF, 0xFF, 0xFF);
+                        VF = 0;
                     }
                 }
 
@@ -202,12 +345,210 @@ void Chip8::decodeExec(uint16_t inst)
 
         break;
     }
+        // SKP
+        case 0xE:
+        {
+            Vx = muxReg(x);
+            int scanCode = getScanCode(*Vx);
+            const uint8_t * keyStates = SDL_GetKeyboardState(NULL);
+
+            // SKP Vx
+            if(kk == 0x9E) {
+                if(keyStates[scanCode]) {
+                    pc +=2;
+                }
+            } else if(kk == 0xA1) {
+                // SKNP Vx
+                if(!keyStates[scanCode]) {
+                    pc += 2;
+                } 
+            }
+           break;
+        }
+        case 0xF:
+            Vx = muxReg(x);
+
+            if(kk == 0x07) {
+                *Vx = delayReg; // LD Vx, DT
+            } else if(kk == 0x0A) {
+                pc -= 2; // LD Vx, K - wait for keypress, store value of key in Vx
+                pause = true;
+
+                while(SDL_PollEvent(&ev)) {
+                    if(ev.type == SDL_KEYDOWN) {
+                        pause = false;
+                        pc += 2;
+                        *Vx = getKeyValue(ev.key.keysym.scancode);
+                        break;
+                    }
+                }
+            } else if(kk == 0x15) {
+                delayReg = *Vx; // LD DT, Vx
+            } else if(kk == 0x18) {
+                soundReg = *Vx; // LD ST, Vx
+            } else if(kk == 0x1E) {
+                Vx = muxReg(x);
+                uint16_t xVal = *Vx;
+                
+                // special case of overflow - Spacefight 2091 relies on this behavior
+                if(xVal + idxReg > 0xFFFF) {
+                    VF = 1;
+                } else {
+                    VF = 0;
+                }
+                idxReg += *Vx; // ADD I, Vx
+            } else if(kk == 0x29) {
+                // LD F, Vx - set idx to location of sprite for digit Vx
+                idxReg = 0x50 + (*Vx & 0xF)*5; // Calculate location of the font - 5 bytes per char font
+            } else if(kk == 0x33) {
+                // LD B, Vx - Store binary-coded decimal conversion
+                uint8_t num = *Vx;
+                ram[idxReg] = num / 100;
+                ram[idxReg + 1] = (num % 100) / 10;
+                ram[idxReg + 2] = num % 10;
+            } else if(kk == 0x55) {
+                // LD [I], Vx
+                for(int i = 0; i <= x; i++) {
+                    ram[idxReg + i] = *muxReg(i);
+                }
+
+            } else if(kk == 0x65) {
+                // LD Vx, [I]
+                for(int i = 0; i <= x; i++) {
+                    *muxReg(i) = ram[idxReg + i];
+                }
+            }
+            break;
+    }
+}
+
+/**
+ * Get key hex value 
+ * 
+ */
+uint8_t Chip8::getKeyValue(int scanCode) {
+   uint8_t keyVal = 0;
+    
+    switch(scanCode) {
+        case SDL_SCANCODE_1:
+            keyVal = 0x1;
+            break;
+        case SDL_SCANCODE_2:
+            keyVal = 0x2;
+            break;
+        case SDL_SCANCODE_3:
+            keyVal = 0x3;
+            break;
+        case SDL_SCANCODE_4:
+            keyVal = 0xC;
+            break;
+        case SDL_SCANCODE_Q:
+            keyVal = 0x4;
+            break;
+        case SDL_SCANCODE_W:
+            keyVal = 0x5;
+            break;
+        case SDL_SCANCODE_E:
+            keyVal = 0x6;
+            break;
+        case SDL_SCANCODE_R:
+            keyVal = 0xD;
+            break;
+        case SDL_SCANCODE_A:
+            keyVal = 0x7;
+            break;
+        case SDL_SCANCODE_S:
+            keyVal = 0x8;
+            break;
+        case SDL_SCANCODE_D:
+            keyVal = 0x9;
+            break;
+        case SDL_SCANCODE_F:
+            keyVal = 0xE;
+            break;
+        case SDL_SCANCODE_Z:
+            keyVal = 0xA;
+            break;
+        case SDL_SCANCODE_X:
+            keyVal = 0x0;
+            break;
+        case SDL_SCANCODE_C:
+            keyVal = 0xB;
+            break;
+        case SDL_SCANCODE_V:
+            keyVal = 0xF;
+            break;
+    }
+
+    return keyVal;
+} 
+
+/**
+ * Get key scan code
+ * 
+ */
+int Chip8::getScanCode(uint8_t key)
+{
+    int scanCode = 0;
+    
+    switch(key) {
+        case 0x1:
+            scanCode = SDL_SCANCODE_1;
+            break;
+        case 0x2:
+            scanCode = SDL_SCANCODE_2;
+            break;
+        case 0x3:
+            scanCode = SDL_SCANCODE_3;
+            break;
+        case 0xC:
+            scanCode = SDL_SCANCODE_4;
+            break;
+        case 0x4:
+            scanCode = SDL_SCANCODE_Q;
+            break;
+        case 0x5:
+            scanCode = SDL_SCANCODE_W;
+            break;
+        case 0x6:
+            scanCode = SDL_SCANCODE_E;
+            break;
+        case 0xD:
+            scanCode = SDL_SCANCODE_R;
+            break;
+        case 0x7:
+            scanCode = SDL_SCANCODE_A;
+            break;
+        case 0x8:
+            scanCode = SDL_SCANCODE_S;
+            break;
+        case 0x9:
+            scanCode = SDL_SCANCODE_D;
+            break;
+        case 0xE:
+            scanCode = SDL_SCANCODE_F;
+            break;
+        case 0xA:
+            scanCode = SDL_SCANCODE_Z;
+            break;
+        case 0x0:
+            scanCode = SDL_SCANCODE_X;
+            break;
+        case 0xB:
+            scanCode = SDL_SCANCODE_C;
+            break;
+        case 0xF:
+            scanCode = SDL_SCANCODE_V;
+            break;
+    }
+
+    return scanCode;
 }
 
 /**
  * Select a register
  */
-uint8_t* Chip8::mux(int reg)
+uint8_t* Chip8::muxReg(int reg)
 {
     switch (reg)
     {
@@ -295,6 +636,14 @@ uint8_t Chip8::getSoundReg()
 void Chip8::minusSound()
 {
     soundReg--;
+}
+
+/**
+ * Checks if execution is paused
+ * 
+ */
+bool Chip8::isPaused() {
+    return pause; 
 }
 
 Chip8::~Chip8(){

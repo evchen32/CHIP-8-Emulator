@@ -9,7 +9,7 @@ using namespace std;
 int main(int argc, char* argv[]) {
     Chip8 inst = Chip8();
 
-    ifstream file("IBM Logo.ch8", ifstream::binary);
+    ifstream file("BC_test.ch8", ifstream::binary);
     uint16_t idx = 0x200;
 
     char byte;
@@ -24,24 +24,10 @@ int main(int argc, char* argv[]) {
     
     
     // Initialize display
-    //SDL_Window * window = nullptr;
-
     const int SCREEN_WIDTH = 64;
     const int SCREEN_HEIGHT = 32;
     const int SCREEN_FPS = 60;
     const int SCREEN_TICKS_PER_FRAME = 1000 / SCREEN_FPS;
-
-    /*if(SDL_Init(SDL_INIT_VIDEO) != 0) {
-        cout << "SDL_Init Error: " << SDL_GetError() << endl;
-        return 1;
-    }
-    
-    window = SDL_CreateWindow("CHIP-8", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN);
-    if(window == nullptr) {
-        cout << "SDL_CreateWindow Error: " << SDL_GetError() << endl;
-        SDL_Quit();
-        return 1;
-    }*/
 
     // Initialize FPS
     Timer fpsTimer, capTimer;
@@ -62,58 +48,6 @@ int main(int argc, char* argv[]) {
             
             if(ev.type == SDL_QUIT) {
                 isRunning = false;
-            } else if(ev.type == SDL_KEYDOWN) {
-                switch(ev.key.keysym.scancode) {
-                    case SDL_SCANCODE_1:
-                        cout << "1" << endl; 
-                        break;
-                    case SDL_SCANCODE_2:
-                        cout << "2" << endl; 
-                        break;
-                    case SDL_SCANCODE_3:
-                        cout << "3" << endl; 
-                        break;
-                    case SDL_SCANCODE_4:
-                        cout << "C" << endl; 
-                        break;
-                    case SDL_SCANCODE_Q:
-                        cout << "4" << endl; 
-                        break;
-                    case SDL_SCANCODE_W:
-                        cout << "5" << endl; 
-                        break;
-                    case SDL_SCANCODE_E:
-                        cout << "6" << endl; 
-                        break;
-                    case SDL_SCANCODE_R:
-                        cout << "D" << endl; 
-                        break;
-                    case SDL_SCANCODE_A:
-                        cout << "7" << endl; 
-                        break;
-                    case SDL_SCANCODE_S:
-                        cout << "8" << endl; 
-                        break;
-                    case SDL_SCANCODE_D:
-                        cout << "9" << endl; 
-                        break;
-                    case SDL_SCANCODE_F:
-                        cout << "E" << endl; 
-                        break;
-                    case SDL_SCANCODE_Z:
-                        cout << "A" << endl; 
-                        break;
-                    case SDL_SCANCODE_X:
-                        cout << "0" << endl; 
-                        break;
-                    case SDL_SCANCODE_C:
-                        cout << "B" << endl; 
-                        break;
-                    case SDL_SCANCODE_V:
-                        cout << "F" << endl; 
-                        break;
-                }
-                
             }
         }
 
