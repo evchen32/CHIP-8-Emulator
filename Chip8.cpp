@@ -6,7 +6,7 @@
 
 using namespace std;
 
-Chip8::Chip8() : ram(4096), pc(0x200), pause(false)
+Chip8::Chip8() : ram(4096), pc(0x200), pause(false), delayReg(0), soundReg(0)
 {
     // load font data - popular convention to populate from 0x50 - 0x9F (big endian)
     string line;
@@ -102,6 +102,7 @@ void Chip8::decodeExec(uint16_t inst)
         // CLS - clear the display
         if (nnn == 0x0E0)
         {
+            SDL_FillRect(surface, NULL, SDL_MapRGBA(surface->format, 0,0,0,0xFF)); // need to make sure surface is also cleared
             SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255); // Select drawing color for renderer
             SDL_RenderClear(renderer);                      // CLS - clear screen
             SDL_RenderPresent(renderer);
@@ -250,7 +251,7 @@ void Chip8::decodeExec(uint16_t inst)
         Vx = muxReg(x);
         Vy = muxReg(y);
         if(*Vx != *Vy) {
-            pc += 4;
+            pc += 2;
         }
         break;
 
@@ -296,6 +297,10 @@ void Chip8::decodeExec(uint16_t inst)
         for(uint16_t offset = 0; offset < n; offset++) {
             spriteRow = ram[idxReg + offset];
             yCoord = startY + offset;
+
+            if(yCoord == SCREEN_HEIGHT) {
+                break;
+            }
             
             // Look at each pixel status in the row
             for(int j = 0; j < 8; j++) {
@@ -325,11 +330,6 @@ void Chip8::decodeExec(uint16_t inst)
                     break;
                 }
             }
-
-            yCoord++;
-            if(yCoord == SCREEN_HEIGHT) {
-                break;
-            }
         }
 
         SDL_UnlockSurface(surface); // Unlock after pixel manipulation
@@ -337,7 +337,7 @@ void Chip8::decodeExec(uint16_t inst)
         SDL_UpdateTexture(texture, NULL, surfacePixels, surface->pitch); // update texture with new pixel data
         
         // Clear renderer
-        //SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
         SDL_RenderClear(renderer);
 
         // Draw texture
@@ -353,6 +353,8 @@ void Chip8::decodeExec(uint16_t inst)
         {
             Vx = muxReg(x);
             int scanCode = getScanCode(*Vx);
+
+            SDL_PumpEvents(); // update keyStates to latest
 
             // SKP Vx - using keyStates is fine since, we are looking for certain key press. Possible to use events also...
             if(kk == 0x9E) {
@@ -665,7 +667,3 @@ Chip8::~Chip8(){
     SDL_DestroyWindow(window);
     SDL_Quit();
 }
-
-/*
- * Function for keypresses
- */
