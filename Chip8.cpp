@@ -319,10 +319,9 @@ void Chip8::decodeExec(uint16_t inst)
                     if(r == 0xFF) {
                         // Detected red, the pixel has color!
                        *screenPixel = SDL_MapRGBA(surface->format, 0, 0, 0, 0xFF);
-                        VF = 1; 
+                        VF = 1; // if ANY pixel is erased, VF register is set to 1, otherwise 0
                     } else {
                         *screenPixel = SDL_MapRGBA(surface->format, 0xFF, 0xFF, 0xFF, 0xFF);
-                        VF = 0;
                     }
                 }
 
