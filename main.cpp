@@ -9,7 +9,8 @@ using namespace std;
 int main(int argc, char* argv[]) {
     Chip8 inst = Chip8();
 
-    ifstream file("Breakout.ch8", ifstream::binary);
+    ifstream file("./ROMS/Tetris [Fran Dachille, 1991].ch8", ifstream::binary);
+    //ifstream file("./TestROMS/chip8-test-rom.ch8", ifstream::binary);
     uint16_t idx = 0x200;
 
     char byte;
